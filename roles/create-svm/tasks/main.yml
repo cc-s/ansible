@@ -1,0 +1,39 @@
+---
+- name: Create SVM
+  na_ontap_svm:
+      state: "{{ state }}"
+      name: "{{ prod_svm }}"
+      root_volume: "{{ rootvolname }}"
+      root_volume_aggregate: "{{ rootvolaggr }}"
+      root_volume_security_style: "{{ rootvolsecurity }}"
+      aggr_list: "{{ allowedaggrs }}"
+      allowed_protocols: "{{ allowedprotocols }}"
+      <<: login
+
+
+- name: Enable Fibre Channel on SVM
+  na_ontap_fcp:
+    state: "{{ state }}"
+    status: up
+    vserver: "{{ prod_svm }}"
+    <<: login
+
+- name: Create Job for 18:05 everyday of every month
+  na_ontap_job_schedule:
+    state: "{{ state }}"
+    name: "{{ jobname }}"
+    job_minutes: 05
+    job_hours: 18
+    job_days_of_month: -1
+    job_months: -1
+    <<: login
+
+- name: Create Snapshot policy
+  na_ontap_snapshot_policy:
+    state: "{{ state }}"
+    name: "{{ snap_policy_name }}"
+    schedule: "{{ jobname }}"
+    prefix: "{{ jobname }}"
+    count: 4
+    enabled: True
+    <<: login

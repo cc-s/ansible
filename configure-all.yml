@@ -1,0 +1,43 @@
+---
+- name: Create cluster
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /group_vars/login.yml
+  vars:
+    state: present
+  roles:
+    - dns-ntp
+    - cluster-network
+
+- name: Create aggr
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /group_vars/login.yml
+  vars:
+    state: present
+  roles:
+    - create-aggr
+
+- name: Create SVM 
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /group_vars/login.yml
+  vars:
+    state: present
+  roles:
+    - create-svm
+
+
+- name: Create fc network
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - /group_vars/login.yml
+  vars:
+    state: present
+  roles:
+    - fc-network
+

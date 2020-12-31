@@ -1,0 +1,13 @@
+---
+  - name: Create and Online New Data Aggregate
+    na_ontap_aggregate:
+      state: "{{ state }}"
+      service_state: online
+      name: "{{ aggrdataname }}"
+      disk_count: "{{ diskcount }}"
+      nodes: "{{ nodes }}"
+      raid_size: "{{ raidsize }}"
+      raid_type: "{{ raidtype }}"
+      wait_for_online: true
+      time_out: 300
+      <<: login

@@ -1,0 +1,89 @@
+#########################################################################################################################################
+# Variable for all roles
+#
+#
+##########################################################################################################################################
+
+
+#Cluster setting 
+clustername: ontapcluster 
+node-a: clusternode-a
+node-b: clusternode-b
+
+ntpservers: "[192.168.1.10, 192.168.1.11]"
+dnsservers: "[192.168.1.10, 192.168.1.11]"
+domains: domain.local
+
+#Alternative way of declaring variables
+#dnsandmore:
+# - { ntpservers: "[192.168.1.10, 192.168.1.11]", dnsservers: "[192.168.1.10, 192.168.1.11]", domains: domain.local}
+
+contact: "Will Robinson"
+site: "Space"
+
+#Ifgroup ports
+ifgrp_name: a0a
+ifgrp_ports: "[e0a, e0c]"
+ifgrp_mode: LACP
+
+#Vlan
+vlanid: '99'
+
+#Brodcast domain
+broadcast_domain: BD_name_mgmt
+
+#Clusterlifs
+clusterip-node-a: 192.168.1.21
+clusterip-node-b: 192.168.1.22
+clu_port: e0a
+
+#Node mgmt
+node-mgmt-ip-node-a: 192.168.2.21
+node-mgmt-ip-node-b: 192.168.2.22
+node_port: a0a
+
+#cluster mgmt
+cluster-mgmt-ip: 192.168.2.20
+clu_vip_port: a0a
+
+#Aggregate settings
+aggrname: aggr1_disktype_site
+diskcount: 26
+nodes: node-a, node-b
+raidsize: 24
+raidtype: raid_dp
+
+#SVM settings
+prod_svm: fc_prod_site
+test_svm: fc_test_site
+
+rootvolname:
+rootvolaggr: "{{ aggrname }}"
+rootvolsecurity: unix 
+allowedaggrs: "{{ aggrname }}"
+allowedprotocols: iscsi,fc 
+
+#Snapshots
+jobname: "Job_everyday"
+snap_policy_name: "A snappy name"
+
+
+#FC Lif, See the fc-network role
+
+
+#Mgmt SVM
+mgmt_svm: mgmt_site
+
+mgmt_rootvolname: mgmt_site_root
+mgmt_rootvolaggr: "{{ aggrname }}"
+mgmt_rootvolsecurity: unix 
+mgmt_allowedaggrs: "{{ aggrname }}"
+mgmt_allowedprotocols: cifs,nfs,iscsi,fc 
+
+cifs_servername:
+ad_domain:
+ad_user:
+ad_psw:
+ou:
+#Mgmt ad group
+ad_group:

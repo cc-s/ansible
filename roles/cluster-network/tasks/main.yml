@@ -1,0 +1,135 @@
+---
+- name: "Create ifgrp {{ node-a }}"
+  na_ontap_net_ifgrp:
+    state: "{{ state }}"
+    distribution_function: mac
+    name: "{{ ifgrp_name }}"
+    ports: "{{ ifgrp_ports }}"
+    mode: "{{ ifgrp_mode }}"
+    node: "{{ node-a }}"
+    <<: login
+
+- name: "Create ifgrp {{ node-b }}"
+  na_ontap_net_ifgrp:
+    state: "{{ state }}"
+    distribution_function: mac
+    name: "{{ ifgrp_name }}"
+    ports: "{{ ifgrp_ports }}"
+    mode: "{{ ifgrp_mode }}"
+    node: "{{ node-b }}"
+    <<: login
+
+- name: "Create VLAN {{ vlanid }} on {{ node-a }} on parent interface {{ ifgrp_name }}"
+  na_ontap_net_vlan:
+    state: "{{ state }}"
+    vlanid: "{{ vlanid }}"
+    node: "{{ node-a }}"
+    parent_interface: "{{ ifgrp_name }}"
+    <<: login
+
+- name: "Create VLAN {{ vlanid }} on {{ node-b }} on parent interface {{ ifgrp_name }}"
+  na_ontap_net_vlan:
+    state: "{{ state }}"
+    vlanid: "{{ vlanid }}"
+    node: "{{ node-b }}"
+    parent_interface: "{{ ifgrp_name }}"
+    <<: login
+
+- name: "Create broadcast domain {{ broadcast_domain }}"
+  na_ontap_broadcast_domain:
+    state: "{{ state }}"
+    name: "{{ broadcast_domain }}"
+    mtu: 1500
+    ipspace: Default
+    ports: ["{{ node-a }}:{{ ifgrp_name }}-{{ vlanid }}", "{{ node-b }}:{{ ifgrp_name }}-{{ vlanid }}"]
+    <<: login
+
+- name: Create cluster interface node-a
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: cluster_lif01
+    home_port: "{{ clu_port }}"
+    home_node: "{{ node-a }}"
+    address: "{{ clusterip-node-a }}"
+    netmask: 255.255.255.0
+    role: cluster
+    admin_status: up
+    is_auto_revert: true
+    is_ipv4_link_local: true
+    vserver: Cluster
+    <<: login
+
+- name: Create cluster interface node-b
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: cluster_lif02
+    home_port: "{{ clu_port }}"
+    home_node: "{{ node-b }}"
+    address: "{{ clusterip-node-b }}"
+    netmask: 255.255.255.0
+    role: cluster
+    admin_status: up
+    is_auto_revert: true
+    is_ipv4_link_local: true
+    vserver: Cluster
+    <<: login
+
+
+- name: Create Node-mgmt interface node-a
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: "{{ node-a }}_mgmt"
+    home_port: "{{ node_port }}"
+    home_node: "{{ node-a }}"
+    address: "{{ node-mgmt-ip-node-a }}"
+    netmask: 255.255.255.0
+    role: node-mgmt
+    admin_status: up
+    is_auto_revert: true
+    is_ipv4_link_local: true
+    vserver: "{{ clustername }}"
+    <<: login
+
+- name: Create Node-mgmt interface node-b
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: "{{ node-b }}_mgmt"
+    home_port: "{{ node_port }}"
+    home_node: "{{ node-b }}"
+    address: "{{ node-mgmt-ip-node-b }}"
+    netmask: 255.255.255.0
+    role: node-mgmt
+    admin_status: up
+    is_auto_revert: true
+    is_ipv4_link_local: true
+    vserver: "{{ clustername }}"
+    <<: login
+
+- name: Create Cluster-mgmt interface
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: "{{ clustername }}_mgmt"
+    home_port: "{{ clu_vip_port }}"
+    home_node: "{{ node-a }}"
+    address: "{{ cluster-mgmt-ip }}"
+    netmask: 255.255.255.0
+    role: cluster-mgmt
+    admin_status: up
+    is_auto_revert: true
+    is_ipv4_link_local: true
+    vserver: "{{ clustername }}"
+    <<: login
+
+- name: modify cluster
+  na_ontap_cluster:
+    state: "{{ state }}"
+    cluster_contact: "{{ contact }}"
+    cluster_location: "{{ site }}"
+    cluster_name: "{{ clustername }}"
+    <<: login
+
+- name: modify banner vserver
+  na_ontap_login_messages:
+    vserver: "{{ clustername }}"
+    banner: "Ja hej hej"
+    <<: login

@@ -1,0 +1,22 @@
+---
+  - name: Set NTP
+    na_ontap_ntp:
+      state: "{{ state }}"
+      version: auto
+      server_name: "{{ ntpservers }}"
+      <<: login
+
+  - name: Set Timezone
+    na_ontap_command:
+      command: ['cluster', 'date', 'modify', '-timezone', 'Sweden/Stockholm']
+      privilege: admin
+      <<: login
+
+  - name: Configure dns
+    na_ontap_dns:
+      state: "{{ state }}"
+      vserver: "{{ vservername }}"
+      domains: "{{ domains }}"
+      nameservers: "{{ dnsservers }}"
+      skip_validation: true
+      <<: login

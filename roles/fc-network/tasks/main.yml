@@ -1,0 +1,53 @@
+---
+- name: Create FC interface node-a on port 3a
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: FC_Prod_lif01
+    home_port: 3a
+    home_node: "{{ node-a }}"
+    role: data
+    protocols:
+      - fcp
+    admin_status: up
+    vserver: "{{ prod_svm }}"
+    <<: login
+
+- name: Create FC interface node-a on port 3b
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: FC_Prod_lif02
+    home_port: 3b
+    home_node: "{{ node-a }}"
+    role: data
+    protocols:
+      - fcp
+    admin_status: up
+    vserver: "{{ prod_svm }}"
+    <<: login
+
+- name: Create FC interface node-b on port 3a
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: FC_Prod_lif03
+    home_port: 3a
+    home_node: "{{ node-b }}"
+    role: data
+    protocols:
+      - fcp
+    admin_status: up
+    vserver: "{{ prod_svm }}"
+    <<: login
+
+- name: Create FC interface node-b on port 3b
+  na_ontap_interface:
+    state: "{{ state }}"
+    interface_name: FC_Prod_lif04
+    home_port: 3b
+    home_node: "{{ node-b }}"
+    role: data
+    protocols:
+      - fcp
+    admin_status: up
+    vserver: "{{ prod_svm }}"
+    <<: login
+

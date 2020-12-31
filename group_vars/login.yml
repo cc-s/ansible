@@ -1,0 +1,8 @@
+---
+vars:
+    login: &login
+     hostname: 192.168.1.50 
+     username: ansible 
+     password: Password123 
+     https: true
+     validate_certs: false

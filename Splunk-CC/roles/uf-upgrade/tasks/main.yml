@@ -1,0 +1,98 @@
+---
+
+- name: Ensure {{ splunk_uf_home }} dir exists
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    mode: 0755  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+
+- name: Check for the presence of /home/{{ os_user }}/{{ splunk_uf_tgz }}
+  stat: 
+    path: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    get_checksum: yes  
+    checksum_algorithm: md5
+  register: splunk_uf_tgz_downloaded_flag
+  become: yes
+
+
+- name: Copy ./files/{{ splunk_uf_tgz }} to /home/{{ os_user }}/
+  copy:
+    src: "files/{{ splunk_uf_tgz }}"
+    dest: /home/{{ os_user }}
+    mode: '0640'
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+  when: splunk_uf_tgz_downloaded_flag.stat.exists == False and not download_uf_tgz_from_splunk_servers   
+
+
+
+- name: Check if Splunk is booting through initd
+  stat: 
+    path: /etc/init.d/splunk
+  register: initd_run_flag
+
+- name: Check if Splunk is booting through systemd
+  stat: 
+    path: /etc/systemd/system/SplunkForwarder.service
+  register: systemd_run_flag
+
+- name: initd Stop Splunk pre-upgrade
+  command: "{{ splunk_uf_home }}/bin/splunk stop"
+  become: yes  
+  when: initd_run_flag.stat.exists == True
+
+- name: systemd Stop Splunk pre-upgrade
+  systemd:
+    name: SplunkForwarder
+    state: stopped
+  become: yes
+  when: systemd_run_flag.stat.exists == True
+
+- name: Removing  booting options
+  command: "{{ splunk_uf_home }}/bin/splunk disable boot-start --no-prompt --answer-yes --accept-license"
+  become: yes
+  when: 
+    - install_method == "systemd"
+
+
+- name: Extract {{ splunk_uf_tgz }} to {{ splunk_uf_home }} to upgrade
+  unarchive:
+    src: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    dest: "{{ splunk_uf_home }}/.."
+    remote_src: yes
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"    
+  become: yes
+
+- name: Set {{ splunk_uf_home }} owner & group recursively
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+    recurse: yes
+  become: yes  
+
+
+- name: "Create symlink to splunk in /usr/local/bin"
+  file:
+    src: "{{ splunk_uf_home }}/bin/splunk"
+    path: /usr/local/bin/splunk
+    state: link
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+
+- name: Splunk "enable boot-start -systemd-managed 1 -user {{ os_user }}"
+  command: "{{ splunk_uf_home }}/bin/splunk enable boot-start -systemd-managed 1 -user {{ os_user }} --no-prompt --answer-yes --accept-license"
+  become: yes 
+
+- name:  Start Splunkforwarder
+  command: "systemctl restart SplunkForwarder"
+  become: yes

@@ -1,0 +1,8 @@
+---
+# This playbook upgrades the Splunk Universal Forwarder
+
+
+- name: Upgrade Splunk Universal Forwarder
+  hosts: all
+  roles:
+    - uf-upgrade

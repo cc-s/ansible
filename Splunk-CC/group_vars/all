@@ -1,7 +1,7 @@
 
 #========================================
 # Ansible, OS, & Splunk Config Variables 
-#========================================
+
 
 
 #SSH information
@@ -37,9 +37,9 @@ splunk_uf_pass: admin123
 ulimits: true
 
 
-#Download from Web (true) download from ./files (false)
+#Download from Web (true) dowload from ./files (false)
 download_tgz_from_splunk_servers: false
-download_uf_tgz_from_splunk_servers: true
+download_uf_tgz_from_splunk_servers: false
 
 
 
@@ -73,12 +73,17 @@ uf_forward_internal_logs_port: 9997
 
 
 #===========================================
-# Splunk Enterprise
+# Splunk Enterprise (Core) Version Selector
+#===========================================
 
-
+# Latest Splunk Enterprise version, filename, checksum, and hashing algorith (for wget pull)
 splunk_version: 8.1.0.1
 splunk_tgz: splunk-8.1.0.1-24fd52428b5a-Linux-x86_64.tgz
 splunk_tgz_checksum: f5cd85c2860c6f21322abd7768c84b60
+
+#splunk_version: 8.0.0
+#splunk_tgz: splunk-8.0.0-1357bef0a7f6-Linux-x86_64.tgz
+#splunk_tgz_checksum: e4dd7986af1740504340baf62e63c82b
 
 
 install_method: systemd
@@ -86,11 +91,14 @@ install_method: systemd
 
 
 #=============================================
-# Splunk Universal Forwarder
-
+# Splunk Universal Forwarder Version Selector
+#=============================================
 
 splunk_uf_version: 8.1.0
 splunk_uf_tgz: splunkforwarder-8.1.0-f57c09e87251-Linux-x86_64.tgz
 splunk_uf_tgz_checksum: 6a4e99c6287942feb0ad1e6b97a50721
 
 
+#splunk_uf_version: 8.0.0
+#splunk_uf_tgz: splunkforwarder-8.0.0-1357bef0a7f6-Linux-x86_64.tgz
+#splunk_uf_tgz_checksum: c5dbe71dd4f19251a5fe82d3fd4a0e2a

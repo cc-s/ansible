@@ -1,0 +1,224 @@
+---
+#Requirements
+# ansible-galaxy collection install community.general
+# ansible-galaxy collection install community.crypto
+
+- hosts: all
+  vars:
+    post_install: |
+      Do this after play is complete:
+        - python3 ./netbox/generate_secret_key.py to generate a new secret key
+          replace SECRET_KEY in /opt/netbox/netbox/netbox/configuration.py
+        - Create NetBox virtual environment: sudo /opt/netbox/upgrade.sh
+        - Create SuperUser: 
+          source /opt/netbox/venv/bin/activate 
+          cd /opt/netbox/netbox 
+          python3 manage.py createsuperuser
+    db_name: netbox
+    db_user: netbox
+    db_password: abc1234
+    netbox_version: v3.2.2
+    uid: 9999
+    gid: 9999
+
+  tasks:
+    - name: Update the apt cache
+      become: yes
+      apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+        force_apt_get: yes
+
+    - name: Install required base packages
+      package:
+        name:
+          - bash-completion
+          - sysstat
+          - sudo
+          - git
+          - ca-certificates
+          - curl
+          - gcc
+          - nginx
+          - redis
+          - wget
+          - supervisor
+          - python3
+          - python3-dev
+          - python3-pip
+          - python3-setuptools
+          - python3-venv
+          - build-essential
+          - libxml2-dev
+          - libxslt1-dev
+          - libffi-dev
+          - graphviz
+          - libpq-dev
+          - libssl-dev
+          - zlib1g-dev
+          - postgresql
+        state: latest
+      become: yes
+
+    - name: Start postgresql
+      command: "systemctl start postgresql"
+      become: yes
+
+    - name: Enable postgresql
+      command: "systemctl enable postgresql"
+      become: yes
+
+    - name: Install packages from pip3 - psycopg2, requests and cryptography
+      pip:
+        executable: pip3
+        name:
+          - psycopg2
+          - requests
+          - cryptography
+
+    - name: "Create netbox database"
+      postgresql_db:
+        state: present
+        name: "{{ db_name }}"
+      become: yes
+      become_user: postgres
+
+    - name: "Create netbox db user"
+      postgresql_user:
+        state: present
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+      become: yes
+      become_user: postgres
+
+    - name: "Grant netbox db user access to netbox db"
+      postgresql_privs:
+        type: database
+        database: "{{ db_name }}"
+        roles: "{{ db_user }}"
+        grant_option: no
+        privs: all
+      become: yes
+      become_user: postgres
+      
+
+    - name: Remove useless packages from the cache
+      apt:
+        autoclean: yes
+
+    - name: Remove dependencies that are no longer required
+      apt:
+        autoremove: yes
+
+    - name: Download NetBox
+      get_url:
+        url: "https://github.com/netbox-community/netbox/archive/refs/tags/{{ netbox_version }}.tar.gz"
+        dest: "/root/{{ netbox_version }}.tar.gz"
+
+    - name: Ensure group netbox exists with correct gid
+      ansible.builtin.group:
+        name: netbox
+        state: present
+        gid: "{{ gid }}"
+
+    - name: Create user netbox with a specific uid and group netbox
+      ansible.builtin.user:
+        name: netbox
+        comment: netbox
+        system: yes
+        uid: "{{ uid }}"
+        group: netbox
+
+    - name: Extract NetBox files to /opt
+      unarchive:
+        src: "/root/{{ netbox_version }}.tar.gz"
+        dest: /opt
+        owner: netbox
+        group: netbox
+        remote_src: yes
+      become: yes
+
+    - name: Create a symbolic link to netbox
+      ansible.builtin.file:
+        src: "/opt/netbox-{{ netbox_version | replace('v','')}}/"
+        dest: /opt/netbox
+        owner: netbox
+        group: netbox
+        state: link
+
+    - name: Create a symbolic netbox cron housekeeping tasks
+      ansible.builtin.file:
+        src: /opt/netbox/contrib/netbox-housekeeping.sh
+        dest: /etc/cron.daily/netbox-housekeeping
+        owner: netbox
+        group: netbox
+        state: link
+
+    - name: Create a netbox config file
+      template:
+        src: configuration.py.j2
+        dest: /opt/netbox/netbox/netbox/configuration.py
+      become: yes
+
+    - name: Create the netbox local requirement file
+      template:
+        src: local_requirements.txt.j2
+        dest: /opt/netbox/local_requirements.txt
+      become: yes
+
+    - name: Copy gunicorn config to active path
+      ansible.builtin.copy:
+        src: /opt/netbox/contrib/gunicorn.py
+        dest: /opt/netbox/gunicorn.py
+        remote_src: yes
+
+    - name: Copy gunicor service configuration files
+      ansible.builtin.copy:
+        src: /opt/netbox/contrib/
+        dest: /etc/systemd/system
+        remote_src: yes
+
+    - name: Copy ngix configuration file to active path
+      ansible.builtin.copy:
+        src: /opt/netbox/contrib/nginx.conf
+        dest: /etc/nginx/sites-available/netbox
+        remote_src: yes
+
+    - name: Recursively remove ngix sites-enabled/default
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Create a symbolic link to ngix sites-enabled folder
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/netbox
+        dest: /etc/nginx/sites-enabled/netbox
+        owner: netbox
+        group: netbox
+        state: link
+
+    - name: Create private key (RSA, 4096 bits)
+      community.crypto.openssl_privatekey:
+        path: /etc/ssl/private/netbox.key
+
+    - name: Create self-signed certificate
+      community.crypto.x509_certificate:
+        path: /etc/ssl/certs/netbox.crt
+        privatekey_path: /etc/ssl/private/netbox.key
+        provider: selfsigned
+
+    - name: Restart service netbox and netbox-rq, in all cases, also issue daemon-reload to pick up config changes
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: "{{ item }}"
+      with_items:
+        - netbox
+        - netbox-rq
+        - nginx
+
+    - name: What do you do now
+      debug: msg={{ post_install.split('\n') }}
+
+#ansible-playbook -i hosts install.yml --ask-pass
